@@ -35,6 +35,12 @@
             </td>
             {% if user.is_authenticated %}
             <td>
+                <!-- BOTÓN PDF AGREGADO AQUI -->
+                <a href="{% url 'ventas:pdf' v.pk %}"
+                   class="btn-erp-primary btn-erp-sm"
+                   target="_blank"
+                   title="Descargar Factura PDF">PDF</a>
+                
                 <a href="{% url 'ventas:eliminar' v.pk %}"
                    class="btn-erp-danger btn-erp-sm">Eliminar</a>
             </td>
