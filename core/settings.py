@@ -27,17 +27,18 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'rest_framework',
-    'rest_framework.authtoken',    # ← agregar
-    'django_filters',              # ← nuevo (nombre de app es django_filters)
+    'rest_framework.authtoken',
+    'django_filters',              # ← Agregar aquí (con guion bajo)
     'whitenoise.runserver_nostatic',
     # Apps del ERP
+    'core',
     'clientes',
     'proveedores',
     'productos',
     'ventas',
     'reportes',
     'configuracion',
-    'catalogo',                    # ← nuevo
+    'catalogo',                    # App catalogo
 ]
 
 MIDDLEWARE = [
