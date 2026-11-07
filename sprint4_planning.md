@@ -19,7 +19,7 @@ actualizando automáticamente el estado del pedido.
 | Template carrito.html con tabla | ✅ W13 |
 | Contador carrito en navbar base.html | ✅ W13 |
 | 8 tests de e-commerce | ✅ W13 |
-| Checkout con Stripe sandbox | ⏳ W14 |
+| Checkout con Stripe sandbox | ✅ W14 |
 | Webhooks y estados de pedido | ⏳ W15 |
 
 **Total Sprint 4:** 26 puntos
