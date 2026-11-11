@@ -233,6 +233,25 @@ def checkout(request):
 
             # ── 2. Crear el Pedido en estado "pendiente" ───────────────
             numero = generar_numero_pedido()
+            
+            # Construir el snapshot: lista de dicts serializables
+            snapshot = [
+                {
+                    'producto_id': int(prod_id),
+                    'nombre':      datos['nombre'],
+                    'cantidad':    int(datos['cantidad']),
+                    'precio':      datos['precio'],   # ya es str
+                }
+                for prod_id, datos in carrito.items()
+            ]
+
+            pedido = Pedido.objects.create(
+                numero_pedido  = numero,
+                cliente        = cliente,
+                estado         = 'pendiente',
+                total_pagado   = totales['total'],
+                items_snapshot = snapshot,           # ← nuevo
+            )
             pedido = Pedido.objects.create(
                 numero_pedido = numero,
                 cliente       = cliente,
