@@ -3,8 +3,6 @@
 
 Separadas de views.py para facilitar las pruebas unitarias.
 """
-
-
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date
 
@@ -94,21 +92,15 @@ def obtener_o_crear_cliente(user) -> Cliente:
 
     return cliente
 
+
 def generar_numero_pedido() -> str:
     """Genera un número de pedido único con formato PED-YYYY-NNNN.
 
-    Verifica la existencia en la base de datos para evitar colisiones
-    y errores de restricción UNIQUE.
+    Returns:
+        str: por ejemplo 'PED-2025-0001'
     """
-    anio = date.today().year
+    anio      = date.today().year
     siguiente = Pedido.objects.filter(
         numero_pedido__startswith=f'PED-{anio}-'
     ).count() + 1
-    numero = f'PED-{anio}-{siguiente:04d}'
-
-    # Bucle de seguridad: si el número ya existe, incrementa hasta encontrar uno libre
-    while Pedido.objects.filter(numero_pedido=numero).exists():
-        siguiente += 1
-        numero = f'PED-{anio}-{siguiente:04d}'
-
-    return numero
+    return f'PED-{anio}-{siguiente:04d}'
