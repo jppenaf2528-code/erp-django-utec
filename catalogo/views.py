@@ -15,6 +15,7 @@ Estructura del carrito en sesión:
         ...
     }
 """
+import time
 from decimal import Decimal
 
 from django.contrib import messages
@@ -207,60 +208,42 @@ def vaciar_carrito(request):
 
 @login_required
 def checkout(request):
-    """Proceso de pago: muestra resumen y crea PaymentIntent de Stripe.
+    """Procesa el pago del carrito generando el Pedido y el PaymentIntent en Stripe."""
+    carrito = obtener_o_crear_carrito(request)
+    totales = calcular_totales_carrito(carrito)
 
-    GET:  Muestra resumen del carrito con IVA calculado.
-          No crea PaymentIntent (espera a POST).
-
-    POST: Valida carrito → crea Pedido → crea PaymentIntent →
-          retorna client_secret al template para que Stripe.js
-          confirme el pago del lado del cliente.
-
-    Redirige a /catalogo/ si el carrito está vacío.
-    """
-    carrito = _obtener_carrito(request)
-    if not carrito:
+    if not totales['items']:
         messages.warning(request, 'Tu carrito está vacío.')
         return redirect('catalogo:catalogo')
 
-    totales         = calcular_totales(carrito)
-    items           = armar_items(carrito)
-    publishable_key = settings.STRIPE_PUBLISHABLE_KEY
+    cliente = getattr(request.user, 'cliente', None)
+    if not cliente:
+        messages.error(request, 'Tu usuario no tiene un perfil de cliente asociado.')
+        return redirect('catalogo:carrito')
 
     if request.method == 'POST':
-        try:
-            # ── 1. Vincular usuario con Cliente del ERP ────────────────
-            cliente = obtener_o_crear_cliente(request.user)
+        # ── 1. Crear el Pedido en estado pendiente ────────────────
+        numero_pedido = generar_numero_pedido()
+        pedido = Pedido.objects.create(
+            cliente=cliente,
+            numero_pedido=numero_pedido,
+            total=totales['total'],
+            estado='pendiente',
+        )
 
-            # catalogo/views.py — en la función checkout(), sección POST:
-            # Reemplazar la línea de creación del Pedido: Reemplazada en W15
-
-            # ── 2. Crear el Pedido con snapshot del carrito ────────────
-            numero = generar_numero_pedido()
-
-            # Construir el snapshot: lista de dicts serializables
-            snapshot = [
-                {
-                    'producto_id': int(prod_id),
-                    'nombre':      datos['nombre'],
-                    'cantidad':    int(datos['cantidad']),
-                    'precio':      datos['precio'],   # ya es str
-                }
-                for prod_id, datos in carrito.items()
-            ]
-
-            pedido = Pedido.objects.create(
-                numero_pedido  = numero,
-                cliente        = cliente,
-                estado         = 'pendiente',
-                total_pagado   = totales['total'],
-                items_snapshot = snapshot,           # ← nuevo
+        # ── 2. Crear las líneas de detalle del pedido ──────────────
+        for item in totales['items']:
+            DetallePedido.objects.create(
+                pedido=pedido,
+                producto=item['producto'],
+                cantidad=item['cantidad'],
+                precio_unitario=item['precio'],
             )
 
-            # ── 3. Crear PaymentIntent en Stripe ───────────────────────
-            # Monto en centavos (Stripe requiere entero)
-            monto_centavos = int(totales['total'] * 100)
+        # ── 3. Crear PaymentIntent en Stripe ───────────────────────
+        monto_centavos = int(totales['total'] * 100)
 
+        try:
             intent = stripe.PaymentIntent.create(
                 amount          = monto_centavos,
                 currency        = 'mxn',
@@ -269,17 +252,17 @@ def checkout(request):
                     'pedido_num': pedido.numero_pedido,
                     'cliente':    cliente.nombre,
                 },
-                idempotency_key = f'pedido-{pedido.pk}',
+                # Línea corregida con tiempo único:
+                idempotency_key = f'pedido-{pedido.pk}-{int(time.time())}',
             )
 
-            # ── 4. Retornar client_secret al template ──────────────────
+            # ── 4. Renderizar el formulario de tarjeta Stripe ────────
             return render(request, 'catalogo/checkout.html', {
                 'carrito':         carrito,
-                'items':           items,
                 'totales':         totales,
                 'pedido':          pedido,
                 'client_secret':   intent.client_secret,
-                'publishable_key': publishable_key,
+                'publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
             })
 
         except stripe.error.StripeError as exc:
@@ -289,20 +272,9 @@ def checkout(request):
             )
             return redirect('catalogo:pago_error')
 
-        except Exception as exc:
-            messages.error(
-                request,
-                f'Error inesperado en el proceso de pago: {exc}'
-            )
-            return redirect('catalogo:pago_error')
-
-    # GET — solo mostrar resumen (sin PaymentIntent)
-    return render(request, 'catalogo/checkout.html', {
-        'carrito':         carrito,
-        'items':           items,
-        'totales':         totales,
-        'client_secret':   None,          # se genera en POST
-        'publishable_key': publishable_key,
+    return render(request, 'catalogo/checkout_confirmar.html', {
+        'carrito': carrito,
+        'totales': totales,
     })
 
 
