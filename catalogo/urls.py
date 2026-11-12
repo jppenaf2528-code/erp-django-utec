@@ -23,4 +23,5 @@ urlpatterns = [
     path('pago-error/',                     views.pago_error,       name='pago_error'),
     # Webhook de Stripe (W15)
     path('webhook/',                        stripe_webhook,         name='webhook'),
+    path('webhooks/', stripe_webhook),
 ]
