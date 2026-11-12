@@ -3,6 +3,10 @@
 
 Separadas de views.py para facilitar las pruebas unitarias.
 """
+
+import uuid
+from django.utils import timezone
+
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date
 
@@ -94,13 +98,8 @@ def obtener_o_crear_cliente(user) -> Cliente:
 
 
 def generar_numero_pedido() -> str:
-    """Genera un número de pedido único con formato PED-YYYY-NNNN.
-
-    Returns:
-        str: por ejemplo 'PED-2025-0001'
-    """
-    anio      = date.today().year
-    siguiente = Pedido.objects.filter(
-        numero_pedido__startswith=f'PED-{anio}-'
-    ).count() + 1
-    return f'PED-{anio}-{siguiente:04d}'
+    """Genera un número de pedido único, ej: PED-20261111-A3F9C2."""
+    while True:
+        numero = f"PED-{timezone.now():%Y%m%d}-{uuid.uuid4().hex[:6].upper()}"
+        if not Pedido.objects.filter(numero_pedido=numero).exists():
+            return numero
