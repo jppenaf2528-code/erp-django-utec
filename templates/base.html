@@ -1,0 +1,737 @@
+{% load static %}{# NUEVO: necesario para usar {% static %} #}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#05081C">
+    <title>{% block title %}Monsters.Inc.{% endblock %} · UTEC Celaya</title>
+
+    <!-- Google Fonts: Press Start 2P (HUD pixelado) + Russo One (logo/títulos) + Rajdhani (texto) + JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- ============================================================
+         TEMA: THE KING OF FIGHTERS 2002 (estilo arcade Neo Geo)
+         Se conservan los nombres de las variables (--clr-gold, etc.)
+         para no romper otros templates:
+           --clr-gold  = amarillo de la barra de vida
+           --clr-amber = naranja (hover)
+           --clr-navy / --clr-royal / --clr-sky = esquina del jugador
+         MODO "DIA"   = esquina 1P (azul)
+         MODO "NOCHE" = esquina 2P (rojo)
+         ============================================================ -->
+    <style>
+        /* ---------- TOKENS: ESQUINA 1P (azul) ---------- */
+        :root, [data-theme="light"] {
+            color-scheme: dark;
+            --clr-navy   : #0B1A44;
+            --clr-royal  : #2A5BD7;
+            --clr-sky    : #6FA3FF;
+            --clr-ice    : #111E4A;   /* filas alternas */
+            --clr-gold   : #FFD21F;   /* amarillo KOF */
+            --clr-amber  : #FF9F1C;
+            --clr-cream  : #2A2306;   /* fondo de totales */
+            --clr-bg     : #070B1C;
+            --clr-surface: #0D1533;
+            --clr-text   : #F2F5FF;
+            --clr-muted  : #9FB0E0;
+            --clr-border : #2F4390;
+            --clr-danger : #FF5A5A;
+            --clr-ok     : #3CE07A;
+            --clr-hover  : #1B2C6B;
+            --clr-danger-bg: #3A0F18;
+            --clr-ok-bg    : #0E2E1D;
+            --shadow-sm  : 0 1px 0 #000, 0 2px 8px rgba(0,0,0,.6);
+            --shadow-md  : 0 0 0 2px #000, 0 8px 22px rgba(0,0,0,.65);
+            --glow       : rgba(255,210,31,.35);
+            --ray        : rgba(111,163,255,.10);
+            --page-text  : #F2F5FF;
+            --page-base  : #05081C;
+            --page-bg    :
+                radial-gradient(ellipse at 50% 0%, rgba(80,130,255,.55) 0, transparent 55%),
+                radial-gradient(circle at 8% 100%, rgba(200,35,44,.35) 0, transparent 40%),
+                linear-gradient(180deg, #14297A 0%, #0A1442 45%, #04061A 100%);
+        }
+        /* ---------- TOKENS: ESQUINA 2P (rojo) ---------- */
+        [data-theme="dark"] {
+            --clr-navy   : #2A0A12;
+            --clr-royal  : #C42B2B;
+            --clr-sky    : #FF8A6B;
+            --clr-ice    : #1F0D16;
+            --clr-gold   : #FFD21F;
+            --clr-amber  : #FF9F1C;
+            --clr-cream  : #2B1A06;
+            --clr-bg     : #0A0407;
+            --clr-surface: #170A10;
+            --clr-text   : #FFF1EC;
+            --clr-muted  : #D0A9A3;
+            --clr-border : #6A2535;
+            --clr-danger : #FF6B6B;
+            --clr-ok     : #3CE07A;
+            --clr-hover  : #3A1420;
+            --clr-danger-bg: #3A1014;
+            --clr-ok-bg    : #10301D;
+            --glow       : rgba(255,90,60,.40);
+            --ray        : rgba(255,120,80,.10);
+            --page-text  : #FFF1EC;
+            --page-base  : #0A0407;
+            --page-bg    :
+                radial-gradient(ellipse at 50% 0%, rgba(255,70,50,.50) 0, transparent 55%),
+                radial-gradient(circle at 92% 100%, rgba(60,110,255,.30) 0, transparent 40%),
+                linear-gradient(180deg, #5E0F1E 0%, #2A0610 45%, #0A0407 100%);
+        }
+
+        /* ---------- BASE ---------- */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scrollbar-color: var(--clr-gold) #000; }
+        body {
+            font-family: 'Rajdhani','Segoe UI',sans-serif;
+            font-size: 17px; font-weight: 500;
+            background-color: var(--page-base);
+            background-image: var(--page-bg);
+            background-attachment: fixed;
+            color: var(--page-text);
+            line-height: 1.5;
+            margin: 0;
+            transition: background .3s, color .3s;
+        }
+        ::selection { background: var(--clr-gold); color: #000; }
+        a { color: var(--clr-sky); }
+        a:hover { color: var(--clr-gold); }
+        :focus-visible { outline: 3px solid var(--clr-gold); outline-offset: 2px; }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Russo One','Rajdhani',sans-serif;
+            letter-spacing: .03em; font-weight: 400;
+        }
+        .text-muted { color: var(--clr-muted) !important; }
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--clr-gold), var(--clr-amber));
+            border: 2px solid #000;
+        }
+
+        /* Rayos de luz del escenario (detras del contenido) */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background: repeating-conic-gradient(from 0deg at 50% 12%,
+                        var(--ray) 0deg 5deg, transparent 5deg 13deg);
+            -webkit-mask-image: radial-gradient(circle at 50% 12%, #000 0, transparent 75%);
+                    mask-image: radial-gradient(circle at 50% 12%, #000 0, transparent 75%);
+        }
+        /* Piso del escenario en perspectiva */
+        body::after {
+            content: ''; position: fixed; left: -50%; width: 200%; bottom: 0; height: 55vh;
+            z-index: -1; pointer-events: none;
+            background:
+                linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px) 0 0 / 100% 34px,
+                linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px) 0 0 / 64px 100%;
+            transform: perspective(520px) rotateX(62deg);
+            transform-origin: 50% 100%;
+            -webkit-mask-image: linear-gradient(to top, #000 0, transparent 85%);
+                    mask-image: linear-gradient(to top, #000 0, transparent 85%);
+        }
+        /* Scanlines CRT + vineta (encima de todo, no bloquea clics) */
+        html::after {
+            content: ''; position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+            background:
+                repeating-linear-gradient(to bottom, rgba(0,0,0,.16) 0 1px, transparent 1px 3px),
+                radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.55) 100%);
+        }
+
+        /* Personaje (Terry) en el fondo, lado izquierdo, mirando hacia el contenido */
+        .kof-fighter {
+            position: fixed; left: 1.5vw; bottom: 0; z-index: -1; pointer-events: none;
+            height: clamp(300px, 68vh, 640px); width: auto;
+            image-rendering: pixelated; image-rendering: crisp-edges;
+            filter: drop-shadow(0 0 22px var(--glow)) drop-shadow(6px 6px 0 rgba(0,0,0,.55));
+            animation: kofIdle .9s steps(2) infinite;
+            user-select: none;
+        }
+        @keyframes kofIdle { 50% { transform: translateY(-5px); } }
+
+        /* NUEVO (Mai): personaje en el lado derecho. Ya mira hacia la izquierda (hacia el contenido) */
+        .kof-fighter-right {
+            left: auto; right: 1.5vw;
+            height: clamp(250px, 56vh, 540px);
+            animation-delay: .45s;
+        }
+
+        /* El contenido con fondo oscuro de panel conserva texto claro */
+        .erp-card, .erp-table, .erp-alert-danger, .erp-alert-info, .erp-alert-success,
+        .card, .list-group-item, .modal-content, .dropdown-menu,
+        .form-control, .form-select { color: var(--clr-text); }
+
+        /* ---------- NAVBAR (menu de seleccion) ---------- */
+        .erp-navbar {
+            position: sticky; top: 0; z-index: 1000;
+            background: linear-gradient(180deg, #000 0%, var(--clr-navy) 100%);
+            border-bottom: 3px solid var(--clr-gold);
+            padding: .55rem 1.5rem;
+            display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: .5rem;
+            box-shadow: 0 3px 0 #000, 0 8px 22px rgba(0,0,0,.65);
+        }
+        .erp-brand {
+            display: inline-flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+            text-decoration: none !important;
+        }
+        .erp-brand-icon { font-size: 1.4rem; filter: drop-shadow(2px 2px 0 #000); }
+        .erp-brand-logo {
+            font-family: 'Russo One',sans-serif;
+            font-size: 1.7rem; font-style: italic; letter-spacing: .04em;
+            text-transform: uppercase; line-height: 1;
+            /* cromo metalico clasico */
+            background: linear-gradient(180deg, #FFFFFF 0%, #FFF3A0 38%, #FFB300 50%, #FF4A1C 78%, #B80F0A 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+            filter: drop-shadow(2px 2px 0 #000) drop-shadow(-1px -1px 0 #000)
+                    drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000);
+        }
+        .erp-brand-sub {
+            font-family: 'Press Start 2P',monospace;
+            font-size: .5rem; letter-spacing: .06em; text-transform: uppercase;
+            color: #fff; background: var(--clr-royal);
+            padding: .3rem .5rem; border: 1px solid #000;
+            box-shadow: 2px 2px 0 #000;
+        }
+        .erp-nav-links { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; }
+        .erp-nav-link {
+            position: relative;
+            color: #FFFFFF !important;
+            font-family: 'Russo One',sans-serif;
+            font-size: .82rem; letter-spacing: .08em; text-transform: uppercase;
+            padding: .4rem .85rem .4rem 1.2rem;
+            text-decoration: none; background: rgba(255,255,255,.04);
+            border: 1px solid transparent;
+            transform: skewX(-12deg);
+            transition: background .12s, color .12s, border-color .12s;
+        }
+        /* cursor de seleccion como en los menus del juego */
+        .erp-nav-link::before {
+            content: '\25B6'; position: absolute; left: .4rem; top: 50%;
+            transform: translateY(-50%) scale(.8);
+            font-size: .6rem; opacity: 0; color: #000;
+        }
+        .erp-nav-link:hover, .erp-nav-link:focus-visible {
+            background: linear-gradient(180deg, #FFF59A, var(--clr-gold) 55%, var(--clr-amber));
+            color: #000 !important; border-color: #000;
+            box-shadow: 3px 3px 0 #000;
+        }
+        .erp-nav-link:hover::before, .erp-nav-link:focus-visible::before,
+        .erp-nav-link.active::before { opacity: 1; animation: kofBlink .7s steps(2) infinite; }
+        .erp-nav-link.active {
+            background: linear-gradient(180deg, #FFF59A, var(--clr-gold) 55%, var(--clr-amber));
+            color: #000 !important; border-color: #000; box-shadow: 3px 3px 0 #000;
+        }
+        /* boton de cambio de esquina 1P / 2P */
+        .theme-toggle {
+            background: radial-gradient(circle at 35% 30%, #FF8A8A 0, #E0161F 45%, #7A0008 100%);
+            color: #FFF; border: 3px solid #000; border-radius: 50%;
+            width: 36px; height: 36px; font-size: .95rem; line-height: 1;
+            cursor: pointer; margin-left: .35rem;
+            box-shadow: 0 4px 0 #000, inset 0 -3px 0 rgba(0,0,0,.35);
+            transition: transform .08s, box-shadow .08s;
+        }
+        .theme-toggle:hover { filter: brightness(1.15); }
+        .theme-toggle:active { transform: translateY(3px); box-shadow: 0 1px 0 #000, inset 0 -2px 0 rgba(0,0,0,.35); }
+
+        /* ---------- HUD DE COMBATE (barras de vida decorativas) ---------- */
+        .kof-hud {
+            display: grid; grid-template-columns: 1fr auto 1fr; align-items: start;
+            gap: 1rem; padding: .75rem 1.5rem .25rem;
+        }
+        .kof-side { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+        .kof-name {
+            display: flex; align-items: center; gap: .6rem;
+            font-family: 'Press Start 2P',monospace; font-size: .6rem; letter-spacing: .05em;
+            color: #fff; text-shadow: 2px 2px 0 #000; text-transform: uppercase;
+            white-space: nowrap; overflow: hidden;
+        }
+        .kof-tag {
+            padding: .3rem .45rem; border: 2px solid #000; box-shadow: 2px 2px 0 #000;
+            font-size: .55rem; color: #fff; text-shadow: none;
+        }
+        .kof-p1 .kof-tag { background: #1E5BFF; }
+        .kof-p2 .kof-tag { background: #E0161F; }
+        .kof-p2 .kof-name { flex-direction: row-reverse; }
+        .kof-life {
+            position: relative; height: 20px; overflow: hidden;
+            background: #2A0508; border: 3px solid #F4F4F4;
+            box-shadow: 0 0 0 2px #000, 0 3px 0 2px #000;
+            transform: skewX(-24deg);
+        }
+        .kof-p2 .kof-life { transform: skewX(24deg); }
+        .kof-life i {
+            position: absolute; inset: 0; display: block; transform-origin: left;
+            transform: scaleX(var(--hp, 1));
+            background: linear-gradient(180deg, #FFFBC2 0%, #FFE21F 30%, #FFB400 62%, #FF7A00 100%);
+            animation: kofFill 1.4s steps(30) both;
+        }
+        .kof-p2 .kof-life i { transform-origin: right; }
+        .kof-life::after { /* marcas cada 10% */
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(0,0,0,.55) calc(10% - 2px) 10%);
+        }
+        .kof-power {
+            display: flex; align-items: center; gap: .5rem;
+            font-family: 'Press Start 2P',monospace; font-size: .45rem; color: #8FE3FF;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .kof-p2 .kof-power { flex-direction: row-reverse; }
+        .kof-power span { display: block; flex: 0 0 55%; max-width: 260px; height: 8px;
+            background: #06122B; border: 2px solid #fff; box-shadow: 0 0 0 1px #000;
+            transform: skewX(-24deg); position: relative; overflow: hidden; }
+        .kof-p2 .kof-power span { transform: skewX(24deg); }
+        .kof-power span i { position: absolute; inset: 0; display: block; transform-origin: left;
+            transform: scaleX(var(--pw, .5));
+            background: linear-gradient(180deg, #CFF6FF, #19C3FF 55%, #2457FF);
+            animation: kofFill 1.8s steps(20) both; }
+        .kof-p2 .kof-power span i { transform-origin: right; }
+        .kof-center { display: flex; flex-direction: column; align-items: center; gap: .2rem; }
+        .kof-timer {
+            min-width: 78px; text-align: center; padding: .45rem .6rem .35rem;
+            font-family: 'Press Start 2P',monospace; font-size: 1.5rem;
+            color: var(--clr-gold); background: #000;
+            border: 3px solid #F4F4F4; box-shadow: 0 0 0 2px #000, 0 0 16px var(--glow);
+            text-shadow: 3px 3px 0 #7A1E00;
+        }
+        .kof-timer.low { color: #FF4A3D; animation: kofBlink .5s steps(2) infinite; }
+        .kof-ko { font-family: 'Russo One',sans-serif; font-style: italic; font-size: .7rem;
+            color: #fff; letter-spacing: .2em; text-shadow: 2px 2px 0 #000; }
+
+        /* ---------- CONTENIDO ---------- */
+        .erp-main { padding: 1.5rem 0 2.5rem; min-height: calc(100vh - 270px); }
+
+        /* ---------- CARDS (paneles del select de personaje) ---------- */
+        .erp-card {
+            position: relative;
+            background: linear-gradient(180deg, rgba(255,255,255,.05), transparent 45%), var(--clr-surface);
+            border: 2px solid var(--clr-border);
+            border-radius: 2px; box-shadow: var(--shadow-md);
+            padding: 1.5rem; margin-bottom: 1.5rem;
+            transition: box-shadow .2s, border-color .2s;
+        }
+        .erp-card::before, .erp-card::after { /* esquineros tipo HUD */
+            content: ''; position: absolute; width: 18px; height: 18px; pointer-events: none;
+            border: 0 solid var(--clr-gold); z-index: 2;
+        }
+        .erp-card::before { top: -5px; left: -5px; border-top-width: 4px; border-left-width: 4px; }
+        .erp-card::after  { bottom: -5px; right: -5px; border-bottom-width: 4px; border-right-width: 4px; }
+        .erp-card:hover { border-color: var(--clr-gold); box-shadow: 0 0 0 2px #000, 0 0 22px var(--glow), 0 8px 22px rgba(0,0,0,.65); }
+        .erp-card-header {
+            background:
+                linear-gradient(115deg, transparent 78%, rgba(255,210,31,.35) 78% 82%, transparent 82% 86%, rgba(255,210,31,.35) 86% 90%, transparent 90%),
+                linear-gradient(90deg, var(--clr-royal) 0%, var(--clr-navy) 70%);
+            color: #FFF; border-radius: 0;
+            padding: .7rem 1.25rem;
+            border-left: 8px solid var(--clr-gold);
+            border-bottom: 2px solid #000;
+            font-family: 'Russo One',sans-serif; font-style: italic;
+            font-size: 1.05rem; letter-spacing: .06em; text-transform: uppercase;
+            text-shadow: 2px 2px 0 #000;
+            margin: -1.5rem -1.5rem 1.5rem;
+        }
+
+        /* ---------- TABLAS (lista de personajes) ---------- */
+        .erp-table {
+            width: 100%; border-collapse: separate; border-spacing: 0;
+            border-radius: 2px; overflow: hidden; box-shadow: var(--shadow-md);
+            border: 2px solid var(--clr-border);
+        }
+        .erp-table thead th {
+            background: linear-gradient(180deg, #1a1a1a, #000);
+            color: var(--clr-gold);
+            font-family: 'Press Start 2P',monospace; font-weight: 400;
+            font-size: .6rem; letter-spacing: .06em; text-transform: uppercase;
+            padding: .95rem 1rem; border-bottom: 3px solid var(--clr-gold);
+            text-shadow: 2px 2px 0 #000;
+        }
+        .erp-table tbody td {
+            background: var(--clr-surface); padding: .6rem 1rem;
+            border-bottom: 1px solid var(--clr-border); font-size: 1rem; font-weight: 600;
+        }
+        .erp-table tbody tr:nth-child(even) td { background: var(--clr-ice); }
+        .erp-table tbody tr:hover td { background: var(--clr-hover); }
+        .erp-table tbody tr:hover td:first-child { box-shadow: inset 6px 0 0 var(--clr-gold); }
+        .erp-table tfoot td {
+            background: var(--clr-cream); color: var(--clr-gold);
+            font-family: 'Russo One',sans-serif; letter-spacing: .05em;
+            border-top: 3px solid var(--clr-gold); padding: .7rem 1rem;
+        }
+        /* Tablas de Bootstrap dentro del mismo tema */
+        .table {
+            --bs-table-color: var(--clr-text);
+            --bs-table-bg: var(--clr-surface);
+            --bs-table-striped-bg: var(--clr-ice);
+            --bs-table-striped-color: var(--clr-text);
+            --bs-table-hover-bg: var(--clr-hover);
+            --bs-table-hover-color: var(--clr-text);
+            --bs-table-border-color: var(--clr-border);
+        }
+
+        /* ---------- BOTONES (botones de arcade) ---------- */
+        .btn-erp-primary, .btn-erp-gold, .btn-erp-danger {
+            display: inline-block; cursor: pointer; text-decoration: none;
+            font-family: 'Russo One',sans-serif; text-transform: uppercase;
+            letter-spacing: .08em; font-size: .88rem;
+            padding: .5rem 1.3rem; border: 3px solid #000; border-radius: 3px;
+            transform: skewX(-8deg);
+            transition: transform .07s, box-shadow .07s, filter .15s;
+        }
+        .btn-erp-primary {
+            background: linear-gradient(180deg, var(--clr-sky), var(--clr-royal) 55%, var(--clr-navy));
+            color: #FFF; text-shadow: 2px 2px 0 #000;
+            box-shadow: 0 5px 0 #000, inset 0 0 0 2px rgba(255,255,255,.35);
+        }
+        .btn-erp-primary:hover { color: #FFF; filter: brightness(1.2); }
+        .btn-erp-gold {
+            background: linear-gradient(180deg, #FFF59A, var(--clr-gold) 55%, var(--clr-amber));
+            color: #000; font-weight: 700;
+            box-shadow: 0 5px 0 #000, inset 0 0 0 2px rgba(255,255,255,.6);
+        }
+        .btn-erp-gold:hover { color: #000; filter: brightness(1.1); }
+        .btn-erp-danger {
+            background: linear-gradient(180deg, #FF8A8A, #E0161F 55%, #7A0008);
+            color: #FFF; text-shadow: 2px 2px 0 #000;
+            box-shadow: 0 5px 0 #000, inset 0 0 0 2px rgba(255,255,255,.3);
+        }
+        .btn-erp-danger:hover { color: #FFF; filter: brightness(1.15); }
+        .btn-erp-primary:active, .btn-erp-gold:active, .btn-erp-danger:active {
+            transform: skewX(-8deg) translateY(4px); box-shadow: 0 1px 0 #000;
+        }
+        .btn-erp-sm { padding: .25rem .8rem; font-size: .75rem; box-shadow: 0 3px 0 #000 !important; }
+        .btn-erp-sm:active { transform: skewX(-8deg) translateY(2px); box-shadow: 0 1px 0 #000 !important; }
+
+        /* ---------- FORMULARIOS ---------- */
+        .erp-label {
+            font-family: 'Russo One',sans-serif;
+            font-size: .8rem; color: var(--clr-gold);
+            letter-spacing: .08em; text-transform: uppercase; text-shadow: 1px 1px 0 #000;
+            display: block; margin-bottom: .3rem;
+        }
+        .erp-input, .form-control, .form-select {
+            background-color: #050A1E; border: 2px solid var(--clr-border);
+            border-radius: 2px; color: var(--clr-text);
+            padding: .5rem .85rem; width: 100%; font-size: 1.02rem; font-weight: 600;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,.6);
+            transition: border-color .15s, box-shadow .15s;
+        }
+        [data-theme="dark"] .erp-input, [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select { background-color: #0B0307; }
+        .erp-input:focus, .form-control:focus, .form-select:focus {
+            outline: none; border-color: var(--clr-gold); background-color: #050A1E; color: var(--clr-text);
+            box-shadow: inset 0 2px 6px rgba(0,0,0,.6), 0 0 0 3px var(--glow);
+        }
+        .erp-input::placeholder, .form-control::placeholder { color: var(--clr-muted); opacity: .7; }
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23FFD21F' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        }
+        option { background: var(--clr-surface); color: var(--clr-text); }
+        input[type="checkbox"], input[type="radio"] { accent-color: var(--clr-gold); }
+
+        /* Componentes de Bootstrap oscurecidos */
+        .card, .list-group-item, .modal-content, .dropdown-menu {
+            background-color: var(--clr-surface); border: 2px solid var(--clr-border); border-radius: 2px;
+        }
+        .dropdown-item { color: var(--clr-text); }
+        .dropdown-item:hover { background: var(--clr-gold); color: #000; }
+        .btn-close { filter: invert(1); }
+
+        /* ---------- BADGES (indicadores LED) ---------- */
+        .badge-erp-active, .badge-erp-inactive, .badge-erp-gold {
+            font-family: 'Press Start 2P',monospace; font-size: .5rem; letter-spacing: .04em;
+            padding: .35rem .6rem; border-radius: 2px; text-transform: uppercase;
+            border: 2px solid currentColor; display: inline-block; text-shadow: 1px 1px 0 #000;
+        }
+        .badge-erp-active   { background: rgba(60,224,122,.14); color: var(--clr-ok); }
+        .badge-erp-inactive { background: rgba(255,90,90,.14);  color: var(--clr-danger); }
+        .badge-erp-gold     { background: var(--clr-cream);     color: var(--clr-gold); }
+        .badge-erp-active::before   { content: '\25CF\00a0'; }
+        .badge-erp-inactive::before { content: '\25CF\00a0'; }
+
+        /* ---------- ALERTAS ---------- */
+        .erp-alert-danger, .erp-alert-info, .erp-alert-success {
+            border: 2px solid #000; border-left-width: 8px; border-radius: 2px;
+            padding: .9rem 1.25rem; font-weight: 600; box-shadow: var(--shadow-sm);
+        }
+        .erp-alert-danger  { background: var(--clr-danger-bg); border-left-color: var(--clr-danger); }
+        .erp-alert-info    { background: var(--clr-ice);       border-left-color: var(--clr-sky); }
+        .erp-alert-success { background: var(--clr-ok-bg);     border-left-color: var(--clr-ok); }
+
+        /* ---------- TITULO DE PAGINA (letrero "ROUND") ---------- */
+        .erp-page-title {
+            position: relative; display: flex; align-items: center; gap: 1.1rem;
+            margin-bottom: 1.75rem; padding-bottom: .9rem;
+        }
+        .erp-page-title::before { /* doble barra inclinada */
+            content: ''; flex: 0 0 auto; width: 12px; height: 2.1rem;
+            background: var(--clr-gold); transform: skewX(-20deg);
+            box-shadow: 18px 0 0 var(--clr-amber), 0 0 0 2px #000;
+            margin-right: 1.2rem;
+        }
+        .erp-page-title::after { /* barra de vida como subrayado */
+            content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 8px;
+            background: linear-gradient(90deg, #FFFBC2, var(--clr-gold) 25%, var(--clr-amber) 70%, #C8102E 100%);
+            border: 2px solid #000; box-shadow: 0 0 12px var(--glow);
+            transform: skewX(-24deg);
+        }
+        .erp-page-title h2 {
+            font-family: 'Russo One',sans-serif; font-style: italic; text-transform: uppercase;
+            font-size: 2rem; letter-spacing: .05em; margin: 0; line-height: 1.1;
+            background: linear-gradient(180deg, #FFFFFF 0%, #FFF3A0 40%, #FFB300 52%, #FF4A1C 80%, #B80F0A 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+            filter: drop-shadow(3px 3px 0 #000) drop-shadow(-1px -1px 0 #000)
+                    drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000);
+        }
+
+        /* ---------- CODIGO ---------- */
+        code, .mono {
+            font-family: 'JetBrains Mono',Consolas,monospace;
+            font-size: .85em; color: var(--clr-gold);
+            background: rgba(0,0,0,.55); padding: .1em .4em; border-radius: 2px;
+            border: 1px solid var(--clr-border);
+        }
+
+        /* ---------- FOOTER (INSERT COIN) ---------- */
+        .erp-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: .5rem 1.5rem;
+            background: #000; color: rgba(255,255,255,.75);
+            font-size: .9rem; font-weight: 600; letter-spacing: .04em;
+            padding: .8rem 1.5rem; border-top: 3px solid var(--clr-gold);
+        }
+        .kof-coin, .kof-credit {
+            font-family: 'Press Start 2P',monospace; font-size: .6rem; color: var(--clr-gold);
+            text-shadow: 2px 2px 0 #7A1E00;
+        }
+        .kof-coin { animation: kofBlink 1s steps(2) infinite; }
+
+        /* ---------- INTRO "ROUND 1 / FIGHT!" (una vez por sesion) ---------- */
+        .kof-splash {
+            position: fixed; inset: 0; z-index: 9999; display: none;
+            align-items: center; justify-content: center; pointer-events: none;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,.55), rgba(0,0,0,.85));
+        }
+        .kof-splash.on { display: flex; animation: kofSplashOut .3s ease-in 2s forwards; }
+        .kof-splash-text {
+            font-family: 'Russo One',sans-serif; font-style: italic; text-transform: uppercase;
+            font-size: clamp(2.6rem, 11vw, 7.5rem); letter-spacing: .06em;
+            background: linear-gradient(180deg, #FFFFFF 0%, #FFF3A0 38%, #FFB300 50%, #FF4A1C 78%, #B80F0A 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+            filter: drop-shadow(5px 5px 0 #000) drop-shadow(-2px -2px 0 #000)
+                    drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000);
+            animation: kofPop .35s cubic-bezier(.2,1.6,.4,1) both;
+        }
+
+        /* ---------- ANIMACIONES ---------- */
+        @keyframes kofFill { from { transform: scaleX(0); } }
+        @keyframes kofBlink { 50% { opacity: 0; } }
+        @keyframes kofPop { from { transform: scale(2.6); opacity: 0; } }
+        @keyframes kofSplashOut { to { opacity: 0; visibility: hidden; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .kof-life i, .kof-power span i, .kof-coin, .kof-timer.low,
+            .erp-nav-link::before, .kof-splash-text { animation: none !important; }
+            .kof-splash { display: none !important; }
+        }
+        /* Sin movimiento para los personajes si el sistema lo pide */
+        @media (prefers-reduced-motion: reduce) {
+            .kof-fighter { animation: none !important; }
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .erp-navbar { padding: .5rem .75rem; position: static; }
+            .erp-brand-logo { font-size: 1.35rem; }
+            .kof-hud { padding: .6rem .75rem .2rem; gap: .5rem; }
+            .kof-power { display: none; }
+            .kof-name { font-size: .5rem; }
+            .kof-timer { min-width: 58px; font-size: 1.05rem; padding: .35rem .4rem; }
+            .kof-life { height: 16px; }
+            .erp-page-title h2 { font-size: 1.45rem; }
+            .erp-page-title::before { margin-right: 1rem; }
+            .erp-footer { justify-content: center; text-align: center; }
+            .kof-fighter { height: 42vh; opacity: .55; }
+            .kof-fighter-right { height: 34vh; } /* NUEVO (Mai) */
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<!-- Personaje de fondo, lado izquierdo (Terry). Ruta: static/img/Terry.png -->
+<img class="kof-fighter" src="{% static 'img/Terry.png' %}" alt="" aria-hidden="true">
+
+<!-- NUEVO (Mai): personaje de fondo, lado derecho. Ruta: static/img/Mai.png -->
+<img class="kof-fighter kof-fighter-right" src="{% static 'img/Mai.png' %}" alt="" aria-hidden="true">
+
+<!-- INTRO ROUND 1 / FIGHT! -->
+<div class="kof-splash" id="kofSplash" aria-hidden="true">
+    <div class="kof-splash-text" id="kofSplashText">ROUND 1</div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="erp-navbar">
+    <a class="erp-brand" href="/">
+        <span class="erp-brand-icon">📦</span>
+        <span class="erp-brand-logo">Monsters.Inc.</span>
+        <span class="erp-brand-sub">Tacos de asada Don Chuy</span>
+    </a>
+    <div class="erp-nav-links">
+        <a href="{% url 'productos:lista' %}"
+           class="erp-nav-link {% block nav_productos %}{% endblock %}">Productos</a>
+        <a href="{% url 'clientes:lista' %}"
+           class="erp-nav-link {% block nav_clientes %}{% endblock %}">Clientes</a>
+        <a href="{% url 'proveedores:lista' %}"
+           class="erp-nav-link {% block nav_proveedores %}{% endblock %}">Proveedores</a>
+        <a href="{% url 'ventas:lista' %}"
+           class="erp-nav-link {% block nav_ventas %}{% endblock %}">Ventas</a>
+        <a href="{% url 'reportes:inicio' %}"
+           class="erp-nav-link {% block nav_reportes %}{% endblock %}">Reportes</a>
+
+        <!-- W13: Tienda publica -->
+        <a href="{% url 'catalogo:catalogo' %}"
+           class="erp-nav-link {% block nav_catalogo %}{% endblock %}">
+            🛒 Tienda
+        </a>
+        <!-- Contador del carrito en la navbar -->
+        {% if carrito_total_items > 0 %}
+        <a href="{% url 'catalogo:carrito' %}"
+           class="erp-nav-link"
+           style="position:relative;">
+            🛍️ ({{ carrito_total_items }})
+        </a>
+        {% endif %}
+
+        <a href="/admin/" class="erp-nav-link">Admin</a>
+        {% if user.is_authenticated %}
+            <a href="/accounts/logout/" class="erp-nav-link">
+                Salir ({{ user.username }})
+            </a>
+        {% else %}
+            <a href="/accounts/login/" class="erp-nav-link">Entrar</a>
+        {% endif %}
+        <button class="theme-toggle" id="themeBtn" title="Cambiar esquina 1P / 2P">🌙</button>
+    </div>
+</nav>
+
+{# HUD de combate (decorativo). Los nombres se pueden cambiar desde cada template con los bloques hud_left y hud_right #}
+<div class="kof-hud" aria-hidden="true">
+    <div class="kof-side kof-p1">
+        <div class="kof-name"><span class="kof-tag">1P</span>{% block hud_left %}Don Chuy{% endblock %}</div>
+        <div class="kof-life" style="--hp:.86"><i></i></div>
+        <div class="kof-power"><b>POWER</b><span style="--pw:.6"><i></i></span></div>
+    </div>
+    <div class="kof-center">
+        <div class="kof-timer" id="kofTimer">99</div>
+        <div class="kof-ko">K.O.</div>
+    </div>
+    <div class="kof-side kof-p2">
+        <div class="kof-name"><span class="kof-tag">2P</span>{% block hud_right %}Cliente{% endblock %}</div>
+        <div class="kof-life" style="--hp:.68"><i></i></div>
+        <div class="kof-power"><b>POWER</b><span style="--pw:.35"><i></i></span></div>
+    </div>
+</div>
+
+<!-- MENSAJES FLASH -->
+{% if messages %}
+<div class="container mt-3">
+    {% for m in messages %}
+    <div class="erp-alert-{% if m.tags == 'error' %}danger{% elif m.tags == 'success' %}success{% else %}info{% endif %} d-flex justify-content-between align-items-center mb-2"
+         role="alert">
+        <span>{{ m }}</span>
+        <button onclick="this.parentElement.style.display='none'"
+                style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:inherit;">×</button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- CONTENIDO PRINCIPAL -->
+<main class="erp-main">
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="erp-footer">
+    <span class="kof-coin">INSERT COIN</span>
+    <span>Monsters.Inc. · Django 4.2 LTS · UTEC Celaya · Espiral 1</span>
+    <span class="kof-credit">CREDIT 99</span>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+</script>
+
+<!-- Toggle esquina 1P (dia) / 2P (noche) -->
+<script>
+(function () {
+    var btn  = document.getElementById('themeBtn');
+    var html = document.documentElement;
+    var icons = { light: '🌙', dark: '☀️' };
+    var saved = localStorage.getItem('erpTheme') || 'light';
+    html.setAttribute('data-theme', saved);
+    if (btn) btn.textContent = icons[saved];
+    if (btn) {
+        btn.addEventListener('click', function () {
+            var current = html.getAttribute('data-theme');
+            var next    = current === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', next);
+            btn.textContent = icons[next];
+            localStorage.setItem('erpTheme', next);
+        });
+    }
+})();
+</script>
+
+<!-- Temporizador del HUD + intro ROUND 1 / FIGHT! -->
+<script>
+(function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Temporizador 99 a 00 (solo decorativo)
+    var timer = document.getElementById('kofTimer');
+    if (timer && !reduce) {
+        var t = 99;
+        setInterval(function () {
+            if (document.hidden) return;
+            t = t > 0 ? t - 1 : 99;
+            timer.textContent = (t < 10 ? '0' : '') + t;
+            timer.classList.toggle('low', t <= 10);
+        }, 1000);
+    }
+
+    // Intro: se muestra solo la primera vez de cada sesion
+    var splash = document.getElementById('kofSplash');
+    var text   = document.getElementById('kofSplashText');
+    if (!splash || !text || reduce) return;
+    try {
+        if (sessionStorage.getItem('kofIntro')) return;
+        sessionStorage.setItem('kofIntro', '1');
+    } catch (e) { return; }
+    splash.classList.add('on');
+    setTimeout(function () {
+        text.style.animation = 'none';
+        void text.offsetWidth;
+        text.textContent = 'FIGHT!';
+        text.style.animation = '';
+    }, 1000);
+    setTimeout(function () { splash.classList.remove('on'); splash.style.display = 'none'; }, 2400);
+})();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

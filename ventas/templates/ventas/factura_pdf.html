@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Factura {{ venta.pk }}</title>
+    <style>
+        /* Configuración de página limpia para xhtml2pdf */
+        @page {
+            size: a4 portrait;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #1A1A2E;
+        }
+        .header-table {
+            width: 100%;
+            border-bottom: 2px solid #B8860B;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+        .header-title {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #0A2342;
+        }
+        .header-subtitle {
+            font-size: 10pt;
+            color: #5A6A7E;
+        }
+        .datos-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .datos-table td {
+            padding: 6px;
+            font-size: 9pt;
+            border: 1px solid #E8F0FB;
+        }
+        .datos-table .lbl {
+            background-color: #E8F0FB;
+            font-weight: bold;
+            color: #0A2342;
+            width: 25%;
+        }
+        .productos-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .productos-table th {
+            background-color: #0A2342;
+            color: #FFFFFF;
+            padding: 8px;
+            font-size: 9pt;
+            text-align: left;
+            border-bottom: 2px solid #B8860B;
+        }
+        .productos-table td {
+            padding: 7px 8px;
+            font-size: 9pt;
+            border-bottom: 1px solid #E8F0FB;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .total-table {
+            width: 40%;
+            margin-left: 60%;
+            border-collapse: collapse;
+        }
+        .total-table td {
+            padding: 6px 8px;
+            font-size: 10pt;
+            border: 1px solid #E8F0FB;
+        }
+        .total-table .final {
+            background-color: #FDF8E8;
+            font-weight: bold;
+            color: #B8860B;
+        }
+        .nota {
+            margin-top: 30px;
+            padding: 10px;
+            background-color: #F5F9FF;
+            border-left: 4px solid #4A90D9;
+            font-size: 8pt;
+            color: #5A6A7E;
+        }
+    </style>
+</head>
+<body>
+
+<table class="header-table">
+    <tr>
+        <td>
+            <div class="header-title">FACTURA</div>
+            <div class="header-subtitle">{{ config.nombre_empresa }}</div>
+            {% if config.rfc %}<div class="header-subtitle">RFC: {{ config.rfc }}</div>{% endif %}
+        </td>
+        <td class="text-right">
+            <div style="font-size: 14pt; font-weight: bold; color: #B8860B;"># {{ venta.pk|stringformat:"05d" }}</div>
+            <div class="header-subtitle">Fecha: {{ venta.fecha|date:"d/m/Y H:i" }}</div>
+        </td>
+    </tr>
+</table>
+
+<table class="datos-table">
+    <tr>
+        <td class="lbl">Cliente</td>
+        <td>{{ venta.cliente.nombre }}</td>
+        <td class="lbl">Correo</td>
+        <td>{{ venta.cliente.correo }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Teléfono</td>
+        <td>{{ venta.cliente.telefono|default:"—" }}</td>
+        <td class="lbl">Moneda</td>
+        <td>{{ config.moneda }}</td>
+    </tr>
+</table>
+
+<table class="productos-table">
+    <thead>
+        <tr>
+            <th style="width: 8%;">#</th>
+            <th style="width: 42%;">Producto</th>
+            <th class="text-right" style="width: 18%;">Precio Unit.</th>
+            <th class="text-right" style="width: 12%;">Cant.</th>
+            <th class="text-right" style="width: 20%;">Subtotal</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for detalle in venta.detalles.all %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ detalle.producto.nombre }}</td>
+            <td class="text-right">${{ detalle.precio_unitario }}</td>
+            <td class="text-right">{{ detalle.cantidad }}</td>
+            <td class="text-right">${{ detalle.subtotal }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="text-align: center;">Sin líneas de detalle registradas.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<table class="total-table">
+    {% with subtotal=venta.total iva_pct=config.iva_porcentaje %}
+    <tr>
+        <td class="lbl">Subtotal</td>
+        <td class="text-right">${{ subtotal }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">IVA ({{ iva_pct }}%)</td>
+        <td class="text-right">${% widthratio subtotal 100 iva_pct %}</td>
+    </tr>
+    <tr class="final">
+        <td>TOTAL</td>
+        <td class="text-right">${{ subtotal }}</td>
+    </tr>
+    {% endwith %}
+</table>
+
+<div class="nota">
+    <strong>Nota:</strong> Este documento es una representación impresa de la factura generada por el ERP Django de {{ config.nombre_empresa }}. Generado el {{ hoy|date:"d/m/Y" }}.
+</div>
+
+</body>
+</html>
