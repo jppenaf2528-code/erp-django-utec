@@ -242,21 +242,21 @@ def checkout(request):
 
             # Construir el snapshot: lista de dicts serializables
             snapshot = [
-                {
-                    'producto_id': int(prod_id),
-                    'nombre':      datos['nombre'],
-                    'cantidad':    int(datos['cantidad']),
-                    'precio':      datos['precio'],   # ya es str
-                }
-                for prod_id, datos in carrito.items()
-            ]
+            {
+                'producto_id': int(prod_id),
+                'nombre': datos['nombre'],
+                'cantidad': int(datos['cantidad']),
+                'precio': datos['precio'],
+            }
+            for prod_id, datos in carrito.items()
+        ]
 
             pedido = Pedido.objects.create(
                 numero_pedido  = numero,
                 cliente        = cliente,
                 estado         = 'pendiente',
                 total_pagado   = totales['total'],
-                items_snapshot = snapshot,           # ← nuevo
+                items_snapshot = snapshot,  # ← ¡REVISA QUE ESTA LÍNEA ESTÉ PRESENTE!
             )
 
             # ── 3. Crear PaymentIntent en Stripe ───────────────────────
@@ -264,14 +264,15 @@ def checkout(request):
             monto_centavos = int(totales['total'] * 100)
 
             intent = stripe.PaymentIntent.create(
-                amount          = monto_centavos,
-                currency        = 'mxn',
-                metadata        = {
-                    'pedido_id':  pedido.pk,
+                amount=monto_centavos,
+                currency='mxn',
+                metadata={
+                    'pedido_id': pedido.pk,
                     'pedido_num': pedido.numero_pedido,
-                    'cliente':    cliente.nombre,
+                    'cliente': cliente.nombre,
                 },
-                idempotency_key = f'pedido-{pedido.pk}',
+                # Usa el numero_pedido único para evitar colisiones:
+                idempotency_key=f'pedido-{pedido.numero_pedido}',
             )
 
             # ── 4. Retornar client_secret al template ──────────────────
