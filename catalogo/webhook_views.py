@@ -20,6 +20,7 @@ from django.db.models import F
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from ventas.tasks import enviar_confirmacion_pedido
 
 from productos.models import Producto
 from ventas.models    import Pedido
@@ -89,11 +90,8 @@ def stripe_webhook(request) -> HttpResponse:
 
 # ── HANDLERS INTERNOS ──────────────────────────────────────────────────────
 
-# catalogo/webhook_views.py — agregar la importación al inicio:
-from ventas.tasks import enviar_confirmacion_pedido
-
-
 def _manejar_pago_exitoso(payment_intent: dict) -> None:
+    # ... (código existente) ...
     pedido_id = _extraer_pedido_id(payment_intent)
     if pedido_id is None:
         return
@@ -107,14 +105,22 @@ def _manejar_pago_exitoso(payment_intent: dict) -> None:
     if pedido.estado != 'pagado':
         pedido.estado = 'pagado'
         pedido.save(update_fields=['estado'])
-        logger.info(f'Pedido {pedido.numero_pedido} actualizado a "pagado".')
+        logger.info(
+            f'Pedido {pedido.numero_pedido} actualizado a "pagado".'
+        )
         _descontar_stock(pedido)
 
-        # ── W16: Disparar tarea asíncrona desde el Webhook ────────
+        # ── NUEVO W16: disparar tarea de confirmación ─────────────────
+        # El webhook es el lugar más confiable para disparar el correo:
+        # se ejecuta incluso si el usuario cerró el navegador antes de
+        # llegar a pago_exitoso().
         enviar_confirmacion_pedido.delay(pedido.pk)
-        # ──────────────────────────────────────────────────────────
+        # ─────────────────────────────────────────────────────────────
     else:
-        logger.info(f'Pedido {pedido.numero_pedido} ya estaba pagado — idempotente.')
+        logger.info(
+            f'Pedido {pedido.numero_pedido} ya estaba pagado — '
+            f'idempotente, sin cambios.'
+        )
 
 
 def _manejar_pago_fallido(payment_intent: dict) -> None:

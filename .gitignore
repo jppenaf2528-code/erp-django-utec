@@ -11,3 +11,4 @@ media/
 .vscode/
 Thumbs.db
 .DS_Store
+celery_data/

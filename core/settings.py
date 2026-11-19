@@ -251,30 +251,45 @@ ACCOUNT_SESSION_REMEMBER       = True           # recordar sesión
 # LOGIN_REDIRECT_URL  = '/productos/'
 LOGOUT_REDIRECT_URL = '/'
 
-# ── CELERY — Cola de tareas asíncronas ────────────────────────────────────
-# Broker y Backend de resultados (Redis local)
-CELERY_BROKER_URL = env('REDIS_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = env('REDIS_URL', default='redis://localhost:6379/0')
+# core/settings.py — agregar al final del archivo:
 
-# Configuración de serialización segura en formato JSON
+# ── CELERY — Cola de tareas asíncronas (broker de archivos) ───────────────
+# Carpeta donde viven los mensajes (broker) y los resultados.
+# IMPORTANTE: la ruta del proyecto NO debe tener acentos ni espacios.
+CELERY_DATA_DIR = BASE_DIR / 'celery_data'
+for _sub in ('broker', 'results'):
+    (CELERY_DATA_DIR / _sub).mkdir(parents=True, exist_ok=True)
+
+# Broker: cada mensaje de tarea es un archivo dentro de data_folder
+CELERY_BROKER_URL = 'filesystem://'
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    # Productor y consumidor usan la MISMA carpeta
+    'data_folder_in':  str(CELERY_DATA_DIR / 'broker'),
+    'data_folder_out': str(CELERY_DATA_DIR / 'broker'),
+}
+
+# Backend de resultados: archivos en disco (URI con barras normales)
+CELERY_RESULT_BACKEND = 'file://' + (CELERY_DATA_DIR / 'results').as_posix()
+
+# Formato de serialización (JSON es seguro y portable)
 CELERY_ACCEPT_CONTENT    = ['json']
 CELERY_TASK_SERIALIZER   = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
-# Sincronización de zona horaria con Django
-CELERY_TIMEZONE = TIME_ZONE
+# Zona horaria (heredar de Django)
+CELERY_TIMEZONE = TIME_ZONE   # 'America/Mexico_City'
 
-# Reintentos automáticos al conectar con el broker durante el arranque
+# Reintentar la conexión con el broker al arrancar el worker
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-# Limites de tiempo por tarea (previene bloqueos)
+# Tiempo máximo que puede correr una tarea antes de ser terminada (segundos)
 CELERY_TASK_SOFT_TIME_LIMIT = 300   # 5 minutos
-CELERY_TASK_TIME_LIMIT       = 360  # 6 minutos
+CELERY_TASK_TIME_LIMIT       = 360  # 6 minutos (hard limit)
 
-# Nombre explícito de la cola de tareas
+# Nombre de la cola por defecto (el worker se suscribe con -Q erp_django)
 CELERY_TASK_DEFAULT_QUEUE = 'erp_django'
 
-# Modo síncrono (Eager): False por defecto. Si no hay servidor Redis disponible en el aula,
-# se puede cambiar a True para que las tareas se ejecuten inmediatamente en el mismo proceso.
-CELERY_TASK_ALWAYS_EAGER     = False
-CELERY_TASK_EAGER_PROPAGATES = True
+# Para tests: ejecutar tareas sincrónicamente (sin worker)
+# Se activa en tests con @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+CELERY_TASK_ALWAYS_EAGER         = False
+CELERY_TASK_EAGER_PROPAGATES     = True

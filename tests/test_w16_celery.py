@@ -1,8 +1,14 @@
-# tests/test_w16_celery.py
-"""Suite de pruebas unitarias para Celery y tareas asíncronas — W16.
+"""Suite de pruebas W16 — Celery y tareas asíncronas.
+
+Verifica la configuración de Celery, la definición de las tareas
+y su invocación desde las vistas.
 
 Ejecutar con:
     python manage.py test tests.test_w16_celery --verbosity=2
+
+Resultado esperado:
+    Ran 8 tests in X.XXXs
+    OK
 """
 from decimal import Decimal
 from unittest.mock import patch
@@ -22,16 +28,16 @@ from ventas.tasks         import (
 
 
 class CeleryConfigTest(TestCase):
-    """Verifica la correcta integración de la app Celery."""
+    """Verifica que Celery está correctamente configurado."""
 
     def test_celery_app_importable(self):
-        """La app Celery debe ser importable desde core."""
+        """La app Celery debe poder importarse sin errores."""
         from core.celery import app as celery_app
         self.assertIsNotNone(celery_app)
         self.assertEqual(celery_app.main, 'core')
 
     def test_tareas_registradas_en_celery(self):
-        """Las tareas de ventas deben estar registradas en la app Celery."""
+        """Las tareas de ventas deben estar registradas en Celery."""
         from core.celery import app as celery_app
         tareas = celery_app.tasks.keys()
         self.assertIn('ventas.enviar_confirmacion_pedido', tareas)
@@ -39,25 +45,25 @@ class CeleryConfigTest(TestCase):
 
 
 class EnviarConfirmacionTareaTest(TestCase):
-    """Pruebas unitarias para las tareas de la app ventas."""
+    """Tests de la tarea enviar_confirmacion_pedido y verificar_stock_bajo."""
 
     def setUp(self):
         ConfiguracionERP.get_instance()
-        cat = Categoria.objects.create(nombre='Cat')
-        prod = Producto.objects.create(
+        cat         = Categoria.objects.create(nombre='Cat')
+        Producto.objects.create(
             nombre='P', precio=Decimal('100.00'), stock=5, categoria=cat
         )
-        cli = Cliente.objects.create(nombre='C', correo='c@t.com')
+        cli         = Cliente.objects.create(nombre='C', correo='c@t.com')
         self.pedido = Pedido.objects.create(
-            numero_pedido='PED-2026-0001',
-            cliente=cli,
-            estado='pagado',
-            total_pagado=Decimal('116.00'),
+            numero_pedido = 'PED-2025-0001',
+            cliente       = cli,
+            estado        = 'pagado',
+            total_pagado  = Decimal('116.00'),
         )
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_tarea_ejecuta_y_retorna_ok(self):
-        """La tarea ejecutada en modo síncrono debe retornar estado 'ok'."""
+        """La tarea debe ejecutarse y retornar estado 'ok'."""
         resultado = enviar_confirmacion_pedido.delay(self.pedido.pk)
         data = resultado.get()
         self.assertEqual(data['estado'], 'ok')
@@ -65,14 +71,14 @@ class EnviarConfirmacionTareaTest(TestCase):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_tarea_con_pedido_inexistente_retorna_error(self):
-        """Debe manejar la ausencia de un pedido sin lanzar excepciones."""
+        """La tarea con pedido inexistente debe retornar estado 'error'."""
         resultado = enviar_confirmacion_pedido.delay(9999)
         data = resultado.get()
         self.assertEqual(data['estado'], 'error')
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_verificar_stock_bajo_detecta_productos(self):
-        """Debe identificar productos con existencia menor al umbral."""
+        """verificar_stock_bajo debe detectar productos con stock < umbral."""
         Producto.objects.filter(nombre='P').update(stock=3)
         resultado = verificar_stock_bajo.delay(umbral=5)
         data = resultado.get()
@@ -82,44 +88,60 @@ class EnviarConfirmacionTareaTest(TestCase):
 
 
 class TareaInvocadaDesdeVistaTest(TestCase):
-    """Verifica el desacoplamiento y llamadas a .delay() en las vistas."""
+    """Verifica que las vistas invocan las tareas con .delay()."""
 
     def setUp(self):
         ConfiguracionERP.get_instance()
-        cat = Categoria.objects.create(nombre='Cat')
-        cli = Cliente.objects.create(nombre='C', correo='test@test.com')
-        self.pedido = Pedido.objects.create(
-            numero_pedido='PED-2026-VISTA',
-            cliente=cli,
-            estado='pendiente',
-            total_pagado=Decimal('100.00'),
+        cli  = Cliente.objects.create(nombre='C', correo='test@test.com')
+        self.pagado = Pedido.objects.create(
+            numero_pedido = 'PED-2025-PAGADO',
+            cliente       = cli,
+            estado        = 'pagado',
+            total_pagado  = Decimal('100.00'),
+        )
+        self.pendiente = Pedido.objects.create(
+            numero_pedido = 'PED-2025-PEND',
+            cliente       = cli,
+            estado        = 'pendiente',
+            total_pagado  = Decimal('100.00'),
         )
         self.user = User.objects.create_user('viewer', password='pass')
 
     @patch('catalogo.views.enviar_confirmacion_pedido.delay')
-    def test_pago_exitoso_llama_a_delay(self, mock_delay):
-        """pago_exitoso() debe invocar a .delay() enviando el id del pedido."""
+    def test_pago_exitoso_pagado_llama_a_delay(self, mock_delay):
+        """pago_exitoso() con pedido pagado debe llamar a .delay()."""
         self.client.force_login(self.user)
         self.client.get(
-            reverse('catalogo:pago_exitoso', args=[self.pedido.pk])
+            reverse('catalogo:pago_exitoso', args=[self.pagado.pk])
         )
-        mock_delay.assert_called_once_with(self.pedido.pk)
+        mock_delay.assert_called_once_with(self.pagado.pk)
+
+    @patch('catalogo.views.enviar_confirmacion_pedido.delay')
+    def test_pago_exitoso_pendiente_no_llama_a_delay(self, mock_delay):
+        """pago_exitoso() con pedido SIN pagar NO debe disparar la tarea."""
+        self.client.force_login(self.user)
+        self.client.get(
+            reverse('catalogo:pago_exitoso', args=[self.pendiente.pk])
+        )
+        mock_delay.assert_not_called()
 
     @patch('catalogo.webhook_views.enviar_confirmacion_pedido.delay')
     @patch('catalogo.webhook_views.stripe.Webhook.construct_event')
-    def test_webhook_succeeded_llama_a_delay(self, mock_event, mock_delay):
-        """El evento payment_intent.succeeded debe llamar a .delay()."""
+    def test_webhook_succeeded_llama_a_delay(
+        self, mock_event, mock_delay
+    ):
+        """El webhook payment_intent.succeeded debe llamar a .delay()."""
         mock_event.return_value = {
             'type': 'payment_intent.succeeded',
             'data': {
                 'object': {
                     'id': 'pi_test',
-                    'metadata': {'pedido_id': str(self.pedido.pk)},
+                    'metadata': {'pedido_id': str(self.pendiente.pk)},
                 }
             }
         }
-        self.pedido.items_snapshot = []
-        self.pedido.save()
+        self.pendiente.items_snapshot = []
+        self.pendiente.save()
 
         self.client.post(
             reverse('catalogo:webhook'),
@@ -127,4 +149,4 @@ class TareaInvocadaDesdeVistaTest(TestCase):
             content_type='application/json',
             HTTP_STRIPE_SIGNATURE='t=1,v1=ok'
         )
-        mock_delay.assert_called_once_with(self.pedido.pk)
+        mock_delay.assert_called_once_with(self.pendiente.pk)

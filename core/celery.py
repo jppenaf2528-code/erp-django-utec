@@ -1,34 +1,41 @@
 # core/celery.py
 """Configuración de la aplicación Celery para el proyecto ERP Django.
 
-Este archivo se importa al iniciar Django para registrar la app de Celery
-y auto-descubrir las tareas definidas en tasks.py de cada aplicación.
+Este archivo debe importarse ANTES de cualquier tarea (@shared_task)
+para que Celery esté configurado correctamente.
 
-Uso en Windows (sin Docker):
+Uso desde la línea de comandos (Windows → siempre con -P solo):
     # Iniciar worker (procesa tareas)
-    celery -A core worker -l info -Q erp_django -P solo
+    celery -A core worker -l info -P solo -Q erp_django
 
-    # Monitorear con Flower
-    celery -A core flower --port=5555
+    # W18: Celery Beat se inicia en OTRA terminal, como proceso separado
+    celery -A core beat -l info
 """
 import os
 
 from celery import Celery
 
-# Establecer el módulo de configuraciones por defecto de Django
+# Establecer el módulo de settings de Django antes de crear la app Celery
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
-# Instanciar la aplicación Celery
+# Crear la aplicación Celery con el nombre del proyecto
 app = Celery('core')
 
-# Cargar configuraciones con el prefijo CELERY_ desde settings.py
+# Leer la configuración desde Django settings
+# El prefijo CELERY_ distingue las variables de Celery de otras de Django
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-# Auto-descubrir tareas en los archivos tasks.py de todas las apps instaladas
+# Auto-descubrir tareas en todos los archivos tasks.py de las apps instaladas
+# Django buscará: clientes/tasks.py, productos/tasks.py, ventas/tasks.py, etc.
 app.autodiscover_tasks()
 
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
-    """Tarea de diagnóstico para verificar el funcionamiento del worker."""
+    """Tarea de diagnóstico — muestra el request de la tarea.
+
+    Ejecutar para verificar que el worker está funcionando:
+        from core.celery import debug_task
+        debug_task.delay()
+    """
     print(f'Request: {self.request!r}')

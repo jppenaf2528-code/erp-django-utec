@@ -16,7 +16,7 @@ Estructura del carrito en sesión:
     }
 """
 
-
+from ventas.tasks import enviar_confirmacion_pedido
 from decimal import Decimal
 
 from django.contrib import messages
@@ -242,21 +242,21 @@ def checkout(request):
 
             # Construir el snapshot: lista de dicts serializables
             snapshot = [
-            {
-                'producto_id': int(prod_id),
-                'nombre': datos['nombre'],
-                'cantidad': int(datos['cantidad']),
-                'precio': datos['precio'],
-            }
-            for prod_id, datos in carrito.items()
-        ]
+                {
+                    'producto_id': int(prod_id),
+                    'nombre':      datos['nombre'],
+                    'cantidad':    int(datos['cantidad']),
+                    'precio':      datos['precio'],   # ya es str
+                }
+                for prod_id, datos in carrito.items()
+            ]
 
             pedido = Pedido.objects.create(
                 numero_pedido  = numero,
                 cliente        = cliente,
                 estado         = 'pendiente',
                 total_pagado   = totales['total'],
-                items_snapshot = snapshot,  # ← ¡REVISA QUE ESTA LÍNEA ESTÉ PRESENTE!
+                items_snapshot = snapshot,           # ← nuevo
             )
 
             # ── 3. Crear PaymentIntent en Stripe ───────────────────────
@@ -264,15 +264,14 @@ def checkout(request):
             monto_centavos = int(totales['total'] * 100)
 
             intent = stripe.PaymentIntent.create(
-                amount=monto_centavos,
-                currency='mxn',
-                metadata={
-                    'pedido_id': pedido.pk,
+                amount          = monto_centavos,
+                currency        = 'mxn',
+                metadata        = {
+                    'pedido_id':  pedido.pk,
                     'pedido_num': pedido.numero_pedido,
-                    'cliente': cliente.nombre,
+                    'cliente':    cliente.nombre,
                 },
-                # Usa el numero_pedido único para evitar colisiones:
-                idempotency_key=f'pedido-{pedido.numero_pedido}',
+                idempotency_key = f'pedido-{pedido.pk}',
             )
 
             # ── 4. Retornar client_secret al template ──────────────────
@@ -308,27 +307,40 @@ def checkout(request):
         'publishable_key': publishable_key,
     })
 
-# catalogo/views.py — agregar la importación al inicio:
-from ventas.tasks import enviar_confirmacion_pedido
 
-
+# Actualizar la función pago_exitoso():
 def pago_exitoso(request, pedido_id: int):
-    """Vista de confirmación de compra post-pago."""
+    """Vista de confirmación post-pago exitoso — W16.
+
+    Cambios respecto a W14:
+        Dispara la tarea asíncrona SOLO si el pedido ya está 'pagado'
+        (es decir, si el webhook de Stripe ya lo confirmó).
+        Si el webhook aún no llega, no se dispara nada: el webhook
+        será quien encole la tarea.
+    """
     from django.shortcuts import get_object_or_404
     pedido = get_object_or_404(Pedido, pk=pedido_id)
 
     # Vaciar el carrito de la sesión
     _guardar_carrito(request, {})
 
-    # ── W16: Disparar tarea asíncrona de confirmación ───────────
-    enviar_confirmacion_pedido.delay(pedido.pk)
-    # ────────────────────────────────────────────────────────────
-
-    messages.success(
-        request,
-        f'¡Pago exitoso! Tu pedido {pedido.numero_pedido} '
-        f'está confirmado. Recibirás un correo de confirmación pronto.'
-    )
+    if pedido.estado == 'pagado':
+        # ── NUEVO W16: disparar tarea asíncrona de confirmación ───────
+        # .delay() escribe el mensaje en el broker y regresa de inmediato.
+        # El worker la ejecutará en segundo plano.
+        enviar_confirmacion_pedido.delay(pedido.pk)
+        # ──────────────────────────────────────────────────────────────
+        messages.success(
+            request,
+            f'¡Pago exitoso! Tu pedido {pedido.numero_pedido} '
+            f'está confirmado. Recibirás un correo de confirmación pronto.'
+        )
+    else:
+        messages.info(
+            request,
+            f'Estamos confirmando el pago de tu pedido '
+            f'{pedido.numero_pedido}. Te avisaremos por correo.'
+        )
 
     return render(request, 'catalogo/pago_exitoso.html', {
         'pedido': pedido,
