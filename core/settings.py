@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'rest_framework',
+    'anymail',
     'rest_framework.authtoken',
     'django_filters',              # ← Agregar aquí (con guion bajo)
     'whitenoise.runserver_nostatic',
@@ -130,8 +131,43 @@ STRIPE_SECRET_KEY     = env('STRIPE_SECRET_KEY',     default='sk_test_placeholde
 STRIPE_PUBLISHABLE_KEY = env('STRIPE_PUBLISHABLE_KEY', default='pk_test_placeholder')
 STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='whsec_placeholder')
 
-# core/settings.py — agregar al final del archivo
+# core/settings.py — configuración de correo electrónico
 
+# ── CORREO ELECTRÓNICO ────────────────────────────────────────────────────
+# Sin .env: backend de consola (imprime el correo en la terminal).
+# Con .env: anymail+SendGrid (Ruta A) o SMTP de Gmail (Ruta B).
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend'
+)
+
+# Remitente visible en los correos
+DEFAULT_FROM_EMAIL = env(
+    'DEFAULT_FROM_EMAIL',
+    default='ERP Django <noreply@erp-django.com>'
+)
+
+# Quién recibe la alerta de stock bajo (uno o varios, separados por coma)
+ALERTA_STOCK_DESTINATARIOS = [
+    c.strip()
+    for c in env('ADMIN_EMAIL', default='admin@erp-django.com').split(',')
+    if c.strip()
+]
+
+# URL base del sitio, para los enlaces dentro de los correos
+SITE_URL = env('SITE_URL', default='http://127.0.0.1:8000')
+
+# Ruta A: django-anymail (SendGrid)
+ANYMAIL = {
+    'SENDGRID_API_KEY': env('SENDGRID_API_KEY', default=''),
+}
+
+# Celery en desarrollo: ejecutar las tareas de inmediato, sin Redis ni worker.
+# En producción déjalo en False (valor por defecto).
+CELERY_TASK_ALWAYS_EAGER     = env.bool('CELERY_TASK_ALWAYS_EAGER', default=False)
+CELERY_TASK_EAGER_PROPAGATES = CELERY_TASK_ALWAYS_EAGER
+
+# core/settings.py — agregar al final del archivo
 # ── JAZZMIN — Personalización del admin con Fable 5 AzulERP ───────────────
 JAZZMIN_SETTINGS = {
     # Identidad
