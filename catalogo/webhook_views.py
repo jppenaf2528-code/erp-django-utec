@@ -22,6 +22,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from ventas.tasks import enviar_confirmacion_pedido
 
+from django.db import transaction
+from ventas.tasks import alertar_stock_tras_venta
+
+# ... aquí va tu código que descuenta el stock ...
+
+transaction.on_commit(alertar_stock_tras_venta)
+
 from productos.models import Producto
 from ventas.models    import Pedido
 
